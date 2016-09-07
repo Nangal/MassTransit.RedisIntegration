@@ -1,0 +1,6 @@
+source https://www.nuget.org/api/v2
+
+nuget FAKE
+nuget MassTransit
+nuget Newtonsoft.Json < 8
+nuget ServiceStack.Redis

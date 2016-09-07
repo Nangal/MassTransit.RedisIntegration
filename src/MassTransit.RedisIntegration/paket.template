@@ -1,0 +1,10 @@
+﻿type project
+authors
+	Alexey Zimarev
+	Chris Patterson
+	Dru Sellers
+	Travis Smith
+owner alexey
+description
+	Redis Saga persistence for MassTransit
+tags MassTransit Redis

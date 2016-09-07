@@ -1,0 +1,39 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 14
+VisualStudioVersion = 14.0.25420.1
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".paket", ".paket", "{2B8C0AB1-A33B-4E0F-A9CC-AE16615D7A76}"
+	ProjectSection(SolutionItems) = preProject
+		..\paket.dependencies = ..\paket.dependencies
+		..\paket.lock = ..\paket.lock
+	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MassTransit.RedisIntegration", "MassTransit.RedisIntegration\MassTransit.RedisIntegration.csproj", "{3016A502-4855-477F-9113-1A6B224BD9E0}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".build", ".build", "{10703707-88E6-4E14-8D0C-103C813E28A5}"
+	ProjectSection(SolutionItems) = preProject
+		..\build.fsx = ..\build.fsx
+	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MassTransit.RedisIntegration.Tests", "MassTransit.RedisIntegration.Tests\MassTransit.RedisIntegration.Tests.csproj", "{F3D11920-BA34-4EDB-91A6-C8B5EFCE1F98}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{3016A502-4855-477F-9113-1A6B224BD9E0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3016A502-4855-477F-9113-1A6B224BD9E0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3016A502-4855-477F-9113-1A6B224BD9E0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3016A502-4855-477F-9113-1A6B224BD9E0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F3D11920-BA34-4EDB-91A6-C8B5EFCE1F98}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F3D11920-BA34-4EDB-91A6-C8B5EFCE1F98}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F3D11920-BA34-4EDB-91A6-C8B5EFCE1F98}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F3D11920-BA34-4EDB-91A6-C8B5EFCE1F98}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
