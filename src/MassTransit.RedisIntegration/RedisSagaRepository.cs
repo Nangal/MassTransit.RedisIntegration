@@ -30,11 +30,10 @@ namespace MassTransit.RedisIntegration
             using (var redis = _clientsManager.GetClient())
             {
                 var sagas = redis.As<TSaga>();
-                var inserted = false;
                 TSaga instance;
 
                 if (policy.PreInsertInstance(context, out instance))
-                    inserted = await PreInsertSagaInstance<T>(sagas, instance);
+                    await PreInsertSagaInstance<T>(sagas, instance).ConfigureAwait(false);
 
                 if (instance == null)
                     instance = sagas.GetById(sagaId);
@@ -46,20 +45,7 @@ namespace MassTransit.RedisIntegration
                 }
                 else
                 {
-                    if (_log.IsDebugEnabled)
-                    {
-                        _log.DebugFormat("SAGA:{0}:{1} Used {2}", TypeMetadataCache<TSaga>.ShortName,
-                            instance.CorrelationId, TypeMetadataCache<T>.ShortName);
-                    }
-                    var sagaConsumeContext = new RedisSagaConsumeContext<TSaga, T>(sagas, context, instance);
-
-                    await policy.Existing(sagaConsumeContext, next).ConfigureAwait(false);
-
-                    if (inserted && !sagaConsumeContext.IsCompleted)
-                        sagas.Store(instance);
-
-                    if (_log.IsDebugEnabled)
-                        _log.DebugFormat("SAGA (Send): New saga state: {@Saga}", instance);
+                    await SendToInstance(context, policy, next, instance, sagas).ConfigureAwait(false);
                 }
             }
         }
@@ -77,6 +63,36 @@ namespace MassTransit.RedisIntegration
             {
                 Persistence = "redis"
             });
+        }
+
+        async Task SendToInstance<T>(ConsumeContext<T> context, ISagaPolicy<TSaga, T> policy,
+            IPipe<SagaConsumeContext<TSaga, T>> next, TSaga instance, IRedisTypedClient<TSaga> sagas)
+            where T : class
+        {
+            try
+            {
+                if (_log.IsDebugEnabled)
+                    _log.DebugFormat("SAGA:{0}:{1} Used {2}", TypeMetadataCache<TSaga>.ShortName, instance.CorrelationId, TypeMetadataCache<T>.ShortName);
+
+                var sagaConsumeContext = new RedisSagaConsumeContext<TSaga, T>(sagas, context, instance);
+
+                await policy.Existing(sagaConsumeContext, next).ConfigureAwait(false);
+
+                if (!sagaConsumeContext.IsCompleted)
+                {
+                    sagas.Store(instance);
+                    if (_log.IsDebugEnabled)
+                        _log.DebugFormat("SAGA (Send): New saga state: {@Saga}", instance);
+                }
+            }
+            catch (SagaException)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                throw new SagaException(ex.Message, typeof(TSaga), typeof(T), instance.CorrelationId, ex);
+            }
         }
 
         private static Task<bool> PreInsertSagaInstance<T>(IRedisTypedClient<TSaga> sagas, TSaga instance)
