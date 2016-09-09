@@ -28,6 +28,7 @@ namespace MassTransit.RedisIntegration
 
             var sagaId = context.CorrelationId.Value;
             using (var redis = _clientsManager.GetClient())
+            using (redis.AcquireLock(sagaId.ToString(), TimeSpan.FromSeconds(1)))
             {
                 var sagas = redis.As<TSaga>();
                 TSaga instance;
@@ -79,11 +80,7 @@ namespace MassTransit.RedisIntegration
                 await policy.Existing(sagaConsumeContext, next).ConfigureAwait(false);
 
                 if (!sagaConsumeContext.IsCompleted)
-                {
                     sagas.Store(instance);
-                    if (_log.IsDebugEnabled)
-                        _log.DebugFormat("SAGA (Send): New saga state: {@Saga}", instance);
-                }
             }
             catch (SagaException)
             {
