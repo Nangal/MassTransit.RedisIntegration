@@ -40,6 +40,9 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="..\SolutionAssemblyInfo.cs">
+      <Link>Properties\SolutionAssemblyInfo.cs</Link>
+    </Compile>
     <Compile Include="RedisSagaConsumeContext.cs" />
     <Compile Include="RedisSagaRepository.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

@@ -15,7 +15,7 @@ open Fake.Json
 open Fake.Testing.NUnit3
 
 let pathInfo = directoryInfo "."
-let product = environVarOrDefault "BAMBOO_productName" pathInfo.Name
+let product = environVarOrDefault "productName" pathInfo.Name
 let company = "Alexey Zimarev"
 let copyright = "Copyright © " + System.DateTime.UtcNow.Year.ToString() + " " + company
 
@@ -26,10 +26,7 @@ let testsDir  = currentDirectory + "/tests/"
 let nugetDir = currentDirectory + "/nuget"
 let testOutputDir = currentDirectory + "/"
 
-let nugetFeed = environVar "BAMBOO_nugetPublishUrl"
-let nugetApiKey = environVar "BAMBOO_nugetApiKey"
-
-let gitversion = "gitversion"
+let gitversion = environVarOrDefault "GitVersion" "gitversion.exe"
 
 // Filesets
 let appReferences =
@@ -112,15 +109,6 @@ Target "Pack" (fun _ ->
          })
 )
 
-Target "Push" (fun _ ->
-    Push (fun p ->
-        {p with
-            ApiKey = nugetApiKey
-            PublishUrl = nugetFeed
-            WorkingDir = nugetDir
-        })
-)
-
 Target "Test" (fun _ ->
     !! (testsDir + "/*.Tests.dll")
       |> NUnit3 (fun p ->
@@ -136,7 +124,6 @@ Target "Test" (fun _ ->
 //  ==> "BuildTests"
 //  ==> "Test"
   ==> "Pack"
-  ==> "Push"
 
 // start build
 RunTargetOrDefault "Pack"
