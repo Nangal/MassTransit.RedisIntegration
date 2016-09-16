@@ -10,7 +10,7 @@ using ServiceStack.Redis.Generic;
 
 namespace MassTransit.RedisIntegration
 {
-    public class RedisSagaRepository<TSaga> : ISagaRepository<TSaga> where TSaga : class, ISaga, IHasGuidId
+    public class RedisSagaRepository<TSaga> : ISagaRepository<TSaga> where TSaga : class, IVersionedSaga, IHasGuidId
     {
         private static readonly ILog _log = Logger.Get<RedisSagaRepository<TSaga>>();
         private readonly IRedisClientsManager _clientsManager;
@@ -27,27 +27,26 @@ namespace MassTransit.RedisIntegration
                 throw new SagaException("The CorrelationId was not specified", typeof(TSaga), typeof(T));
 
             var sagaId = context.CorrelationId.Value;
+            TSaga instance;
             using (var redis = _clientsManager.GetClient())
-            using (redis.AcquireLock(sagaId.ToString(), TimeSpan.FromSeconds(1)))
             {
                 var sagas = redis.As<TSaga>();
-                TSaga instance;
 
                 if (policy.PreInsertInstance(context, out instance))
                     await PreInsertSagaInstance<T>(sagas, instance).ConfigureAwait(false);
 
                 if (instance == null)
                     instance = sagas.GetById(sagaId);
+            }
 
-                if (instance == null)
-                {
-                    var missingSagaPipe = new MissingPipe<T>(sagas, next);
-                    await policy.Missing(context, missingSagaPipe).ConfigureAwait(false);
-                }
-                else
-                {
-                    await SendToInstance(context, policy, next, instance, sagas).ConfigureAwait(false);
-                }
+            if (instance == null)
+            {
+                var missingSagaPipe = new MissingPipe<T>(_clientsManager, next);
+                await policy.Missing(context, missingSagaPipe).ConfigureAwait(false);
+            }
+            else
+            {
+                await SendToInstance(context, policy, next, instance).ConfigureAwait(false);
             }
         }
 
@@ -67,7 +66,7 @@ namespace MassTransit.RedisIntegration
         }
 
         async Task SendToInstance<T>(ConsumeContext<T> context, ISagaPolicy<TSaga, T> policy,
-            IPipe<SagaConsumeContext<TSaga, T>> next, TSaga instance, IRedisTypedClient<TSaga> sagas)
+            IPipe<SagaConsumeContext<TSaga, T>> next, TSaga instance)
             where T : class
         {
             try
@@ -75,12 +74,12 @@ namespace MassTransit.RedisIntegration
                 if (_log.IsDebugEnabled)
                     _log.DebugFormat("SAGA:{0}:{1} Used {2}", TypeMetadataCache<TSaga>.ShortName, instance.CorrelationId, TypeMetadataCache<T>.ShortName);
 
-                var sagaConsumeContext = new RedisSagaConsumeContext<TSaga, T>(sagas, context, instance);
+                var sagaConsumeContext = new RedisSagaConsumeContext<TSaga, T>(_clientsManager, context, instance);
 
                 await policy.Existing(sagaConsumeContext, next).ConfigureAwait(false);
 
                 if (!sagaConsumeContext.IsCompleted)
-                    sagas.Store(instance);
+                    UpdateRedisSaga(instance);
             }
             catch (SagaException)
             {
@@ -114,6 +113,21 @@ namespace MassTransit.RedisIntegration
             }
         }
 
+        private void UpdateRedisSaga(TSaga instance)
+        {
+            using (var redis = _clientsManager.GetClient())
+            {
+                var sagas = redis.As<TSaga>();
+
+                instance.Version++;
+                var old = sagas.GetById(instance.Id);
+                if (old.Version > instance.Version)
+                    throw new RedisSagaConcurrencyException($"Version conflict for saga with id {instance.Id}");
+
+                sagas.Store(instance);
+            }
+        }
+
         /// <summary>
         ///     Once the message pipe has processed the saga instance, add it to the saga repository
         /// </summary>
@@ -123,11 +137,11 @@ namespace MassTransit.RedisIntegration
             where TMessage : class
         {
             private readonly IPipe<SagaConsumeContext<TSaga, TMessage>> _next;
-            private readonly IRedisTypedClient<TSaga> _sagas;
+            private readonly IRedisClientsManager _redis;
 
-            public MissingPipe(IRedisTypedClient<TSaga> sagas, IPipe<SagaConsumeContext<TSaga, TMessage>> next)
+            public MissingPipe(IRedisClientsManager redis, IPipe<SagaConsumeContext<TSaga, TMessage>> next)
             {
-                _sagas = sagas;
+                _redis = redis;
                 _next = next;
             }
 
@@ -145,13 +159,14 @@ namespace MassTransit.RedisIntegration
                         TypeMetadataCache<TMessage>.ShortName);
                 }
 
-                SagaConsumeContext<TSaga, TMessage> proxy = new RedisSagaConsumeContext<TSaga, TMessage>(_sagas,
+                SagaConsumeContext<TSaga, TMessage> proxy = new RedisSagaConsumeContext<TSaga, TMessage>(_redis,
                     context, context.Saga);
 
                 await _next.Send(proxy).ConfigureAwait(false);
 
                 if (!proxy.IsCompleted)
-                    _sagas.Store(context.Saga);
+                    using (var client = _redis.GetClient())
+                        client.As<TSaga>().Store(context.Saga);
             }
         }
     }
