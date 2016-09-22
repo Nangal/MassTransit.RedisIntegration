@@ -1,0 +1,5 @@
+﻿MassTransit
+ServiceStack.Redis
+redis-inside
+NUnit
+Shouldly

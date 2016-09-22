@@ -169,6 +169,12 @@ namespace MassTransit.RedisIntegration
                         client.As<TSaga>().Store(context.Saga);
             }
         }
+
+        public TSaga GetSaga(Guid correlationId)
+        {
+            using (var client = _clientsManager.GetReadOnlyClient())
+                return client.As<TSaga>().GetById(correlationId);
+        }
     }
 
 }
