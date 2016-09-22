@@ -2,5 +2,8 @@ source https://www.nuget.org/api/v2
 
 nuget FAKE
 nuget MassTransit
-nuget Newtonsoft.Json < 8
+nuget Newtonsoft.Json
 nuget ServiceStack.Redis
+nuget NUnit
+nuget Shouldly
+nuget redis-inside

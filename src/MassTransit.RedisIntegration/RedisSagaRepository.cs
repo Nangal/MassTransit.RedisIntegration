@@ -10,7 +10,7 @@ using ServiceStack.Redis.Generic;
 
 namespace MassTransit.RedisIntegration
 {
-    public class RedisSagaRepository<TSaga> : ISagaRepository<TSaga> where TSaga : class, ISaga, IHasGuidId
+    public class RedisSagaRepository<TSaga> : ISagaRepository<TSaga>, IRetrieveSagaFromRepository<TSaga> where TSaga : class, ISaga, IHasGuidId
     {
         private static readonly ILog _log = Logger.Get<RedisSagaRepository<TSaga>>();
         private readonly IRedisClientsManager _clientsManager;
@@ -140,6 +140,12 @@ namespace MassTransit.RedisIntegration
                 if (!proxy.IsCompleted)
                     _sagas.Store(context.Saga);
             }
+        }
+
+        public TSaga GetSaga(Guid correlationId)
+        {
+            using (var client = _clientsManager.GetReadOnlyClient())
+                return client.As<TSaga>().GetById(correlationId);
         }
     }
 
