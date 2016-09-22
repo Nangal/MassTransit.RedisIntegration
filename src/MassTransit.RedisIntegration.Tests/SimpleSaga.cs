@@ -10,7 +10,7 @@ namespace MassTransit.RedisIntegration.Tests
         Orchestrates<CompleteSimpleSaga>,
         //Observes<ObservableSagaMessage, SimpleSaga>,
         ISaga,
-        IHasGuidId
+        IHasGuidId, IVersionedSaga
     {
         public bool Completed { get; private set; }
         public bool Initiated { get; private set; }
@@ -41,5 +41,6 @@ namespace MassTransit.RedisIntegration.Tests
         }
 
         public Guid Id => CorrelationId;
+        public int Version { get; set; }
     }
 }
